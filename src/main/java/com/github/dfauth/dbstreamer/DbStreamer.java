@@ -9,9 +9,9 @@ import javax.sql.DataSource;
 import java.util.*;
 import java.util.concurrent.*;
 
-public class SchemaSucker {
+public class DbStreamer {
 
-    private static final Logger logger = LoggerFactory.getLogger(SchemaSucker.class);
+    private static final Logger logger = LoggerFactory.getLogger(DbStreamer.class);
     private final DataSource source;
     private final DataSource target;
     private final List<String> excludedTables;
@@ -20,18 +20,19 @@ public class SchemaSucker {
     private boolean shouldContinue = true;
     private TargetDatabase targetdB;
     private int batchSize = 1000;
+    private CountDownLatch latch;
 
-    public SchemaSucker(DataSource source, DataSource target) {
+    public DbStreamer(DataSource source, DataSource target) {
         this(source, target, Collections.emptyList());
     }
 
-    public SchemaSucker(DataSource source, DataSource target, List<String> excludedTables) {
+    public DbStreamer(DataSource source, DataSource target, List<String> excludedTables) {
         this.source = source;
         this.target = target;
         this.excludedTables = excludedTables;
     }
 
-    public void suck() {
+    public void stream() {
         targetdB = new TargetDatabase(this.target);
         targetdB.tables().stream().filter(t -> !excludedTableList().contains(t)).forEach(t -> {
             SortedSet<ColumnDefinition> columns = targetdB.columnDefs(t);
@@ -49,7 +50,10 @@ public class SchemaSucker {
                 }
                 logger.info("queue depth "+queue.size()+" stopping... ");
                 stop();
-                sleep();
+                waitForWorkerCompletion();
+            } catch (InterruptedException e) {
+                logger.error(e.getMessage(), e);
+                throw new RuntimeException(e);
             } finally {
                 targetdB.enableReferentialIntegrityChecks();
             }
@@ -72,17 +76,28 @@ public class SchemaSucker {
     private void processAsync() {
         ExecutorService executors = Executors.newFixedThreadPool(nThreads);
 
+        latch = new CountDownLatch(nThreads);
         for(int i=0; i< nThreads; i++) {
             executors.submit(() -> {
                 try {
                     while(shouldContinue) {
-                        processTableDefinition(queue.take());
+                        TableDefinition tableDef = queue.poll(1, TimeUnit.SECONDS);
+                        if(tableDef != null) {
+                            processTableDefinition(tableDef);
+                        }
                     }
+                    latch.countDown();
                 } catch (InterruptedException e) {
                     logger.info(e.getMessage(), e);
                     throw new RuntimeException(e);
                 }
             });
+        }
+    }
+
+    private void waitForWorkerCompletion() throws InterruptedException {
+        if(latch != null) {
+            latch.await();
         }
     }
 

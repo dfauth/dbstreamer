@@ -45,7 +45,7 @@ public class Main {
             target.withUsername(line.getOptionValue("targetJdbcUsername"));
             target.withPassword(line.getOptionValue("targetJdbcPassword"));
             
-            new SchemaSucker(source.build(), target.build()).suck();
+            new DbStreamer(source.build(), target.build()).stream();
 
             Thread.sleep(10 * 1000);
             

@@ -13,28 +13,21 @@ public class TestCase2 {
     @Test
     public void testIt() {
 
-        try {
-            DataSource target = DataSourceConfig.builder().
-                    withDriver("org.hsqldb.jdbcDriver").
-                    withUrl("jdbc:hsqldb:hsql://localhost:9003/simplehr1").
-                    withUsername("SA").
-                    withPassword("").
-                    build();
+        DataSource target = DataSourceConfig.builder().
+                withDriver("org.hsqldb.jdbcDriver").
+                withUrl("jdbc:hsqldb:hsql://localhost:9003/simplehr1").
+                withUsername("SA").
+                withPassword("").
+                build();
 
-            DataSource source = DataSourceConfig.builder().
-                    withDriver("org.hsqldb.jdbcDriver").
-                    withUrl("jdbc:hsqldb:hsql://localhost:9001/simplehr").
-                    withUsername("SA").
-                    withPassword("").
-                    build();
+        DataSource source = DataSourceConfig.builder().
+                withDriver("org.hsqldb.jdbcDriver").
+                withUrl("jdbc:hsqldb:hsql://localhost:9001/simplehr").
+                withUsername("SA").
+                withPassword("").
+                build();
 
-            new SchemaSucker(source, target).suck();
-
-            Thread.sleep(10 * 1000);
-        } catch (InterruptedException e) {
-            logger.info(e.getMessage(), e);
-            throw new RuntimeException(e);
-        }
+        new DbStreamer(source, target).stream();
 
     }
 }
