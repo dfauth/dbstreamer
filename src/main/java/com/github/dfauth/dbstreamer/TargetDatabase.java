@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class TargetDatabase {
@@ -37,14 +38,14 @@ public class TargetDatabase {
             }
             return tmp;
         } catch (SQLException e) {
-            logger.info(e.getMessage(), e);
+            logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         } finally {
             if(connection != null) {
                 try {
                     connection.close();
                 } catch (SQLException e) {
-                    logger.info(e.getMessage(), e);
+                    logger.error(e.getMessage(), e);
                 }
             }
         }
@@ -79,14 +80,14 @@ public class TargetDatabase {
             }
             return tmp;
         } catch (SQLException e) {
-            logger.info(e.getMessage(), e);
+            logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         } finally {
             if(connection != null) {
                 try {
                     connection.close();
                 } catch (SQLException e) {
-                    logger.info(e.getMessage(), e);
+                    logger.error(e.getMessage(), e);
                 }
             }
         }
@@ -109,7 +110,7 @@ public class TargetDatabase {
                     connection = dataSource.getConnection();
                     pstmt = connection.prepareStatement(insertStatement(tableDefinition));
                 } catch (SQLException e) {
-                    logger.info(e.getMessage(), e);
+                    logger.error(e.getMessage(), e);
                     throw new RuntimeException(e);
                 }
             }
@@ -121,17 +122,17 @@ public class TargetDatabase {
                     cnt++;
                     if(cnt%batchSize == 0) {
                         int[] result = pstmt.executeBatch();
-                        logger.info("onNext: cnt: "+cnt+" pstmt.executeBatch() result: "+ Stream.of(result).map(i -> String.valueOf(i)).reduce((s,s2) -> s+","+s2));
+                        logger.info("onNext: cnt: "+cnt+" pstmt.executeBatch() result: "+ IntStream.of(result).mapToObj(i -> String.valueOf(i)).reduce((s, s2) -> s+","+s2).orElse("[empty]"));
                     }
                 } catch (SQLException e) {
-                    logger.info(e.getMessage(), e);
+                    logger.error(e.getMessage(), e);
                     throw new RuntimeException(e);
                 }
             }
 
             @Override
             public void onError(Throwable t) {
-                logger.info("onError("+t+")");
+                logger.error("onError("+t+")");
                 close();
             }
 
@@ -140,7 +141,7 @@ public class TargetDatabase {
                 try {
                     if(cnt%batchSize != 0) {
                         int[] result = pstmt.executeBatch();
-                        logger.info("onComplete:  cnt: "+cnt+" pstmt.executeBatch() result: "+ Stream.of(result).map(i -> String.valueOf(i)).reduce((s,s2) -> s+","+s2));
+                        logger.info("onComplete:  cnt: "+cnt+" pstmt.executeBatch() result: "+ IntStream.of(result).mapToObj(i -> String.valueOf(i)).reduce((s,s2) -> s+","+s2).orElse("[empty]"));
                     }
                     close();
                 } catch (SQLException e) {
@@ -154,7 +155,7 @@ public class TargetDatabase {
                     try {
                         connection.close();
                     } catch (SQLException e) {
-                        logger.info(e.getMessage(), e);
+                        logger.error(e.getMessage(), e);
                     }
                 }
             }
@@ -184,7 +185,7 @@ public class TargetDatabase {
             int result = pstmt.executeUpdate();
             logger.info("result: " + result + " for sql: " + sql);
         } catch (SQLException e) {
-            logger.info(e.getMessage(), e);
+            logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         } finally {
             if(connection != null) {

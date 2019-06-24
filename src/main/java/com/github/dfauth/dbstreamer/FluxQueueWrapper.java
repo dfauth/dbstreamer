@@ -30,10 +30,10 @@ public class FluxQueueWrapper<R> implements Subscriber<R> {
         return Flux.generate(s -> {
             try {
                 Consumer<SynchronousSink<R>> cmd = queue.take();
-                logger.info("dequeued: "+cmd);
+//                logger.info("dequeued: "+cmd);
                 cmd.accept(s);
             } catch (InterruptedException e) {
-                logger.info(e.getMessage(), e);
+                logger.error(e.getMessage(), e);
                 throw new RuntimeException(e);
             }
         });
@@ -53,7 +53,7 @@ public class FluxQueueWrapper<R> implements Subscriber<R> {
 
     @Override
     public void onNext(R r) {
-        logger.info("enqueue r: "+r);
+//        logger.info("enqueue r: "+r);
         queue.offer(s -> s.next(r));
     }
 

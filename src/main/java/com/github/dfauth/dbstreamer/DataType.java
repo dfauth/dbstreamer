@@ -241,13 +241,45 @@ public interface DataType<R> {
             }
         };
 
+        public static final Factory BOOLEAN_FACTORY = new Factory(Boolean.class, "boolean") {
+            @Override
+            public DataType<Boolean> create() {
+                return new DataTypeImpl<Boolean>(Types.TIMESTAMP) {
+                    @Override
+                    public Consumer<Boolean> getWriteConsumer(PreparedStatement pstmt, int i) {
+                        return v -> {
+                            try {
+                                pstmt.setBoolean(i, v);
+                            } catch (SQLException e) {
+                                logger.error(e.getMessage(), e);
+                                throw new RuntimeException(e);
+                            }
+                        };
+                    }
+
+                    @Override
+                    public Function<ResultSet, Boolean> getReadFunction(int ord) {
+                        return rs -> {
+                            try {
+                                return rs.getBoolean(ord);
+                            } catch (SQLException e) {
+                                logger.error(e.getMessage(), e);
+                                throw new RuntimeException(e);
+                            }
+                        };
+                    }
+                };
+            }
+        };
+
         public static final Factory[] values = new Factory[]{VARCHAR_FACTORY,
                 INTEGER_FACTORY,
                 BIGDECIMAL_FACTORY,
                 DATE_FACTORY,
                 BLOB_FACTORY,
         DOUBLE_FACTORY,
-        TIMESTAMP_FACTORY};
+        TIMESTAMP_FACTORY,
+        BOOLEAN_FACTORY};
 
         private final Set<String> aliases;
         private final Class<R> clazz;

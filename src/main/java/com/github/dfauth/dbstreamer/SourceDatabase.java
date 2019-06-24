@@ -42,18 +42,18 @@ public class SourceDatabase {
             subscriber.onComplete();
         } catch (SQLException e) {
             subscriber.onError(e);
-            logger.info(e.getMessage(), e);
+            logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         } catch (RuntimeException e) {
             subscriber.onError(e);
-            logger.info(e.getMessage(), e);
+            logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         } finally {
             if(connection != null) {
                 try {
                     connection.close();
                 } catch (SQLException e) {
-                    logger.info(e.getMessage(), e);
+                    logger.error(e.getMessage(), e);
                 }
             }
         }
@@ -67,7 +67,7 @@ public class SourceDatabase {
         return subscriber -> subscriber.onSubscribe(new Subscription() {
             @Override
             public void request(long n) {
-                logger.info("sourcedB subsciption request("+n+")");
+//                logger.info("sourcedB subsciption request("+n+")");
                 Executors.newSingleThreadExecutor().submit(( )-> {
                     queryStarForTable(tableDef, subscriber);
                 });
@@ -75,7 +75,7 @@ public class SourceDatabase {
 
             @Override
             public void cancel() {
-                logger.info("sourcedB subsciption cancel");
+                logger.warn("sourcedB subsciption cancel");
             }
         });
     }

@@ -47,6 +47,7 @@ public class DbStreamer {
                 processAsync();
                 while(!queue.isEmpty()) {
                     sleep();
+                    logger.info("awoke, queue depth "+queue.size());
                 }
                 logger.info("queue depth "+queue.size()+" stopping... ");
                 stop();
@@ -64,7 +65,7 @@ public class DbStreamer {
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
-            logger.info(e.getMessage(), e);
+            logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }
@@ -88,7 +89,7 @@ public class DbStreamer {
                     }
                     latch.countDown();
                 } catch (InterruptedException e) {
-                    logger.info(e.getMessage(), e);
+                    logger.error(e.getMessage(), e);
                     throw new RuntimeException(e);
                 }
             });
@@ -102,10 +103,15 @@ public class DbStreamer {
     }
 
     private void processTableDefinition(TableDefinition tableDefinition) {
-        SourceDatabase sourcedB = new SourceDatabase(this.source);
-        Publisher<TableRowUpdate> publisher = sourcedB.asPublisherFor(tableDefinition);
-        Subscriber<TableRowUpdate> subscriber = targetdB.asSubscriberFor(tableDefinition, batchSize);
-        publisher.subscribe(subscriber);
+        try {
+            SourceDatabase sourcedB = new SourceDatabase(this.source);
+            Publisher<TableRowUpdate> publisher = sourcedB.asPublisherFor(tableDefinition);
+            Subscriber<TableRowUpdate> subscriber = targetdB.asSubscriberFor(tableDefinition, batchSize);
+            publisher.subscribe(subscriber);
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 
     private void enqueue(TableDefinition td) {

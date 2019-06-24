@@ -50,10 +50,10 @@ public class Main {
             Thread.sleep(10 * 1000);
             
         } catch (org.apache.commons.cli.ParseException e) {
-            logger.info(e.getMessage(), e);
+            logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
-            logger.info(e.getMessage(), e);
+            logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }

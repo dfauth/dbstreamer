@@ -26,7 +26,7 @@ public class StreamingQueue<R> {
             try {
                 return queue.take();
             } catch (InterruptedException e) {
-                logger.info(e.getMessage(), e);
+                logger.error(e.getMessage(), e);
                 throw new RuntimeException(e);
             }
         });
