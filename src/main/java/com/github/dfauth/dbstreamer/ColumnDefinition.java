@@ -6,10 +6,14 @@ import org.slf4j.LoggerFactory;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Comparator;
+import java.util.SortedSet;
 
 public class ColumnDefinition<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(ColumnDefinition.class);
+    public static Comparator<ColumnDefinition> comparator = Comparator.comparingInt(ColumnDefinition::getOrdinal);
+
     private final int ord;
     private final String name;
     private final DataType<T> dataType;
@@ -49,5 +53,9 @@ public class ColumnDefinition<T> {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
+    }
+
+    public DataType<T> getDataType() {
+        return dataType;
     }
 }

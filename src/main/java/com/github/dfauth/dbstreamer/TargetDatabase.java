@@ -67,7 +67,7 @@ public class TargetDatabase {
     public SortedSet<ColumnDefinition> columnDefs(String table) {
         Connection connection = null;
         try {
-            SortedSet<ColumnDefinition> tmp = new TreeSet<>(Comparator.comparingInt(ColumnDefinition::getOrdinal));
+            SortedSet<ColumnDefinition> tmp = new TreeSet<>(ColumnDefinition.comparator);
             connection = this.dataSource.getConnection();
             PreparedStatement pstmt = connection.prepareStatement(getColumnQuery(table));
             ResultSet resultSet = pstmt.executeQuery();
@@ -146,7 +146,7 @@ public class TargetDatabase {
                     close();
                 } catch (SQLException e) {
                     logger.error(e.getMessage(), e);
-//                    throw new RuntimeException(e);
+                    throw new RuntimeException(e);
                 }
             }
 

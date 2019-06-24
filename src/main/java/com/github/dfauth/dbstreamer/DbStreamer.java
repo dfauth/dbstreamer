@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import javax.sql.DataSource;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 public class DbStreamer {
 
@@ -16,11 +18,12 @@ public class DbStreamer {
     private final DataSource target;
     private final List<String> excludedTables;
     private BlockingQueue<TableDefinition> queue = new LinkedBlockingQueue<>();
-    private int nThreads = 6;
+    private int nThreads = 10;
     private boolean shouldContinue = true;
     private TargetDatabase targetdB;
-    private int batchSize = 1000;
+    private int batchSize = 10000;
     private CountDownLatch latch;
+    private BiFunction<String, ColumnDefinition, ColumnDefinition> bf = (t, cd) -> cd;
 
     public DbStreamer(DataSource source, DataSource target) {
         this(source, target, Collections.emptyList());
@@ -35,7 +38,7 @@ public class DbStreamer {
     public void stream() {
         targetdB = new TargetDatabase(this.target);
         targetdB.tables().stream().filter(t -> !excludedTableList().contains(t)).forEach(t -> {
-            SortedSet<ColumnDefinition> columns = targetdB.columnDefs(t);
+            SortedSet<ColumnDefinition> columns = targetdB.columnDefs(t).stream().map(cd -> bf.apply(t, cd)).collect(Collectors.toCollection((() -> new TreeSet(ColumnDefinition.comparator))));
             TableDefinition td = new TableDefinition(t, columns);
             logger.info("compiled table definition "+td);
             enqueue(td);
@@ -44,6 +47,7 @@ public class DbStreamer {
             logger.info("queue depth "+queue.size());
             try {
                 targetdB.disableReferentialIntegrityChecks();
+                sleep();
                 processAsync();
                 while(!queue.isEmpty()) {
                     sleep();
@@ -120,5 +124,10 @@ public class DbStreamer {
 
     private List<String> excludedTableList() {
         return excludedTables;
+    }
+
+    public DbStreamer withColumnDefinition(BiFunction<String, ColumnDefinition, ColumnDefinition> f) {
+        this.bf = f;
+        return this;
     }
 }
