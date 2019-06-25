@@ -45,7 +45,7 @@ public class DataSourceConfig {
         return ds;
     }
 
-    static class Builder {
+    public static class Builder {
 
         private DataSourceConfig dsc = new DataSourceConfig();
 
