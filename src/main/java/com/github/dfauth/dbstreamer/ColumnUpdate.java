@@ -14,10 +14,14 @@ public class ColumnUpdate<T> {
 
     @Override
     public String toString() {
-        return "ColumnUpdate("+ columnDefinition +", "+result+")";
+        return "ColumnUpdate("+ getColumnDefinition() +", "+result+")";
     }
 
     public void update(PreparedStatement pstmt, int i) {
-        columnDefinition.update(pstmt, i, result);
+        getColumnDefinition().update(pstmt, i, result);
+    }
+
+    public ColumnDefinition getColumnDefinition() {
+        return columnDefinition;
     }
 }

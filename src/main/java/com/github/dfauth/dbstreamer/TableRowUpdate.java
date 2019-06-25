@@ -21,7 +21,7 @@ public class TableRowUpdate {
 
     @Override
     public String toString() {
-        return "TableRowUpdate("+name+", "+updates+")";
+        return "TableRowUpdate("+ name +", "+ updates +")";
     }
 
     public void addBatch(PreparedStatement pstmt) {
@@ -35,5 +35,13 @@ public class TableRowUpdate {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
+    }
+
+    public List<ColumnUpdate> getColumnUpdates() {
+        return updates;
+    }
+
+    public String getTable() {
+        return name;
     }
 }

@@ -1,7 +1,9 @@
 package com.github.dfauth.dbstreamer;
 
+import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +26,7 @@ public class DbStreamer {
     private int batchSize = 10000;
     private CountDownLatch latch;
     private BiFunction<String, ColumnDefinition, ColumnDefinition> bf = (t, cd) -> cd;
+    private BiFunction<String, ColumnUpdate, ColumnUpdate> cu = (t, cu) -> cu;
 
     public DbStreamer(DataSource source, DataSource target) {
         this(source, target, Collections.emptyList());
@@ -111,11 +114,48 @@ public class DbStreamer {
             SourceDatabase sourcedB = new SourceDatabase(this.source);
             Publisher<TableRowUpdate> publisher = sourcedB.asPublisherFor(tableDefinition);
             Subscriber<TableRowUpdate> subscriber = targetdB.asSubscriberFor(tableDefinition, batchSize);
-            publisher.subscribe(subscriber);
+            Processor<TableRowUpdate, TableRowUpdate> processor = getProcessor(publisher, subscriber);
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
+    }
+
+    private Processor<TableRowUpdate, TableRowUpdate> getProcessor(Publisher<TableRowUpdate> publisher, Subscriber<TableRowUpdate> subscriber) {
+        Processor<TableRowUpdate, TableRowUpdate> processor = new Processor<TableRowUpdate, TableRowUpdate>() {
+            private Subscriber<? super TableRowUpdate> subscriber;
+
+            @Override
+            public void subscribe(Subscriber<? super TableRowUpdate> s) {
+                this.subscriber = s;
+            }
+
+            @Override
+            public void onSubscribe(Subscription s) {
+                if (this.subscriber != null) {
+                    this.subscriber.onSubscribe(s);
+                }
+            }
+
+            @Override
+            public void onNext(TableRowUpdate tru) {
+                List<ColumnUpdate> updates = tru.getColumnUpdates().stream().map(c -> cu.apply(tru.getTable(), c)).collect(Collectors.toList());
+                this.subscriber.onNext(new TableRowUpdate(tru.getTable(), updates));
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                this.subscriber.onError(t);
+            }
+
+            @Override
+            public void onComplete() {
+                this.subscriber.onComplete();
+            }
+        };
+        processor.subscribe(subscriber);
+        publisher.subscribe(processor);
+        return processor;
     }
 
     private void enqueue(TableDefinition td) {
@@ -128,6 +168,11 @@ public class DbStreamer {
 
     public DbStreamer withColumnDefinition(BiFunction<String, ColumnDefinition, ColumnDefinition> f) {
         this.bf = f;
+        return this;
+    }
+
+    public DbStreamer withColumnUpdate(BiFunction<String, ColumnUpdate, ColumnUpdate> f) {
+        this.cu = f;
         return this;
     }
 }
