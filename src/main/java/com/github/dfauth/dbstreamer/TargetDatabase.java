@@ -122,7 +122,7 @@ public class TargetDatabase {
                     cnt++;
                     if(cnt%batchSize == 0) {
                         int[] result = pstmt.executeBatch();
-                        logger.info("onNext: cnt: "+cnt+" pstmt.executeBatch() result: "+ IntStream.of(result).mapToObj(i -> String.valueOf(i)).reduce((s, s2) -> s+","+s2).orElse("[empty]"));
+                        logger.info("onNext: cnt: "+cnt+" pstmt.executeBatch() result: "+ IntStream.of(result).mapToObj(i -> i == 1).reduce((b1, b2) -> b1 & b2).orElse(false));
                     }
                 } catch (SQLException e) {
                     logger.error(e.getMessage(), e);
@@ -141,7 +141,7 @@ public class TargetDatabase {
                 try {
                     if(cnt%batchSize != 0) {
                         int[] result = pstmt.executeBatch();
-                        logger.info("onComplete:  cnt: "+cnt+" pstmt.executeBatch() result: "+ IntStream.of(result).mapToObj(i -> String.valueOf(i)).reduce((s,s2) -> s+","+s2).orElse("[empty]"));
+                        logger.info("onComplete:  cnt: "+cnt+" pstmt.executeBatch() result: "+ IntStream.of(result).mapToObj(i -> i == 1).reduce((b1, b2) -> b1 & b2).orElse(false));
                     }
                     close();
                 } catch (SQLException e) {
