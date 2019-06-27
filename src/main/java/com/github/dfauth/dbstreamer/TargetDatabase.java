@@ -13,7 +13,6 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class TargetDatabase {
 
@@ -51,9 +50,9 @@ public class TargetDatabase {
         }
     }
 
-    private ColumnDefinition toSomething(int ordinalPosition, String columnName, String sqlDataType) {
+    private ColumnDefinition toColumnDefinition(String table, int ordinalPosition, String columnName, String sqlDataType) {
         DataType dataType = DataType.Factory.findBySqlType(sqlDataType).create();
-        return new ColumnDefinition(ordinalPosition, columnName, dataType);
+        return new ColumnDefinition(table, ordinalPosition, columnName, dataType);
     }
 
     private String getTableQuery() {
@@ -75,7 +74,7 @@ public class TargetDatabase {
                 String columnName = resultSet.getString(1);
                 int ordinalPosition = resultSet.getInt(2);
                 String dataType = resultSet.getString(3);
-                ColumnDefinition columnDef = toSomething(ordinalPosition, columnName, dataType);
+                ColumnDefinition columnDef = toColumnDefinition(table, ordinalPosition, columnName, dataType);
                 tmp.add(columnDef);
             }
             return tmp;

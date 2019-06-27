@@ -7,18 +7,19 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Comparator;
-import java.util.SortedSet;
 
 public class ColumnDefinition<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(ColumnDefinition.class);
     public static Comparator<ColumnDefinition> comparator = Comparator.comparingInt(ColumnDefinition::getOrdinal);
 
+    private final String table;
     private final int ord;
     private final String name;
     private final DataType<T> dataType;
 
-    public ColumnDefinition(int ordinalPosition, String columnName, DataType<T> dataType) {
+    public ColumnDefinition(String table, int ordinalPosition, String columnName, DataType<T> dataType) {
+        this.table = table;
         this.ord = ordinalPosition;
         this.name = columnName;
         this.dataType = dataType;
@@ -57,5 +58,9 @@ public class ColumnDefinition<T> {
 
     public DataType<T> getDataType() {
         return dataType;
+    }
+
+    public String getTable() {
+        return table;
     }
 }

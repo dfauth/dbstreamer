@@ -8,9 +8,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.*;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 public class DbStreamer {
@@ -26,7 +32,7 @@ public class DbStreamer {
     private int batchSize = 10000;
     private CountDownLatch latch;
     private BiFunction<String, ColumnDefinition, ColumnDefinition> bf = (t, cd) -> cd;
-    private BiFunction<String, ColumnUpdate, ColumnUpdate> cu = (t, cu) -> cu;
+    private Function<String, UnaryOperator<ColumnUpdate>> ff = t -> UnaryOperator.identity();
 
     public DbStreamer(DataSource source, DataSource target) {
         this(source, target, Collections.emptyList());
@@ -139,7 +145,7 @@ public class DbStreamer {
 
             @Override
             public void onNext(TableRowUpdate tru) {
-                List<ColumnUpdate> updates = tru.getColumnUpdates().stream().map(c -> cu.apply(tru.getTable(), c)).collect(Collectors.toList());
+                List<ColumnUpdate> updates = tru.getColumnUpdates().stream().map(c -> ff.apply(tru.getTable()).apply(c)).collect(Collectors.toList());
                 this.subscriber.onNext(new TableRowUpdate(tru.getTable(), updates));
             }
 
@@ -172,7 +178,34 @@ public class DbStreamer {
     }
 
     public DbStreamer withColumnUpdate(BiFunction<String, ColumnUpdate, ColumnUpdate> f) {
-        this.cu = f;
+        this.ff = curry(f);
         return this;
+    }
+
+    public DbStreamer withColumnUpdate(Function<String, UnaryOperator<ColumnUpdate>> f) {
+        this.ff = f;
+        return this;
+    }
+
+    public DbStreamer withColumnUpdate(Predicate<String> filter, UnaryOperator<ColumnUpdate> f) {
+        this.ff = FilteringFunction.of(filter, f);
+        return this;
+    }
+
+    public DbStreamer withColumnDefinition(Function<String, UnaryOperator<ColumnDefinition>> f) {
+        this.bf = toBiFunctionFromUnaryOperator(f);
+        return this;
+    }
+
+    private <T,U> BiFunction<T, U, U> toBiFunctionFromUnaryOperator(Function<T, UnaryOperator<U>> f) {
+        return toBiFunction(t -> f.apply(t));
+    }
+
+    private <T,U,V> BiFunction<T, U, V> toBiFunction(Function<T, Function<U, V>> f) {
+        return (T t, U u) -> f.apply(t).apply(u);
+    }
+
+    public <T,U> Function<T, UnaryOperator<U>> curry(BiFunction<T,U,U> f) {
+        return (T t) -> (U u) -> f.apply(t,u);
     }
 }
