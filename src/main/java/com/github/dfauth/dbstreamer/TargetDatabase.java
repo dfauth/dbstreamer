@@ -14,14 +14,10 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
-public class TargetDatabase {
-
-    private static final Logger logger = LoggerFactory.getLogger(TargetDatabase.class);
-
-    private final DataSource dataSource;
+public class TargetDatabase extends AbstractDatabase {
 
     public TargetDatabase(DataSource dataSource) {
-        this.dataSource = dataSource;
+        super(dataSource);
     }
 
     public List<String> tables() {
@@ -176,25 +172,4 @@ public class TargetDatabase {
         executePreparedStatement("SET DATABASE REFERENTIAL INTEGRITY FALSE;");
     }
 
-    public void executePreparedStatement(String sql) {
-        Connection connection = null;
-        try {
-            connection = dataSource.getConnection();
-            PreparedStatement pstmt = connection.prepareStatement(sql);
-            int result = pstmt.executeUpdate();
-            logger.info("result: " + result + " for sql: " + sql);
-        } catch (SQLException e) {
-            logger.error(e.getMessage(), e);
-            throw new RuntimeException(e);
-        } finally {
-            if(connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    logger.error(e.getMessage(), e);
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-    }
 }

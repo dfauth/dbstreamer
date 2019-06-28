@@ -11,17 +11,17 @@ public class TableRowUpdate {
 
     private static final Logger logger = LoggerFactory.getLogger(TableRowUpdate.class);
 
-    private final String name;
     private final List<ColumnUpdate> updates;
+    private final TableDefinition tableDef;
 
-    public TableRowUpdate(String name, List<ColumnUpdate> updates) {
-        this.name = name;
+    public TableRowUpdate(TableDefinition tableDef, List<ColumnUpdate> updates) {
+        this.tableDef = tableDef;
         this.updates = updates;
     }
 
     @Override
     public String toString() {
-        return "TableRowUpdate("+ name +", "+ updates +")";
+        return "TableRowUpdate("+ tableDef.getName() +", "+ updates +")";
     }
 
     public void addBatch(PreparedStatement pstmt) {
@@ -42,6 +42,10 @@ public class TableRowUpdate {
     }
 
     public String getTable() {
-        return name;
+        return tableDef.getName();
+    }
+
+    public TableDefinition getTableDefinition() {
+        return tableDef;
     }
 }

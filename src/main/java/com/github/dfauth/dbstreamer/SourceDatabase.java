@@ -15,14 +15,12 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-public class SourceDatabase {
+public class SourceDatabase extends AbstractDatabase {
 
     private static final Logger logger = LoggerFactory.getLogger(SourceDatabase.class);
 
-    private final DataSource dataSource;
-
     public SourceDatabase(DataSource dataSource) {
-        this.dataSource = dataSource;
+        super(dataSource);
     }
 
     public Publisher<TableRowUpdate> asPublisherFor(TableDefinition tableDef) {
@@ -37,7 +35,7 @@ public class SourceDatabase {
             ResultSet resultSet = pstmt.executeQuery();
             while (resultSet.next()) {
                 List<ColumnUpdate> updates = tableDef.getColumnDefs().stream().map(cd -> cd.read(resultSet)).collect(Collectors.toList());
-                subscriber.onNext(new TableRowUpdate(tableDef.getName(), updates));
+                subscriber.onNext(new TableRowUpdate(tableDef, updates));
             }
             subscriber.onComplete();
         } catch (SQLException e) {

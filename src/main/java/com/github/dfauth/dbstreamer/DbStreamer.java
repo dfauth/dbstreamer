@@ -8,15 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
-import java.util.Collections;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.*;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
+import java.util.function.*;
 import java.util.stream.Collectors;
 
 public class DbStreamer {
@@ -33,6 +27,7 @@ public class DbStreamer {
     private CountDownLatch latch;
     private BiFunction<String, ColumnDefinition, ColumnDefinition> bf = (t, cd) -> cd;
     private Function<String, UnaryOperator<ColumnUpdate>> ff = t -> UnaryOperator.identity();
+    private SourceDatabase sourcedB;
 
     public DbStreamer(DataSource source, DataSource target) {
         this(source, target, Collections.emptyList());
@@ -44,13 +39,35 @@ public class DbStreamer {
         this.excludedTables = excludedTables;
     }
 
-    public void stream() {
+    public List<TableDefinition> sniff() {
+        List<TableDefinition> tmp = new ArrayList<>();
+        sniff(td -> tmp.add(td));
+        return tmp;
+    }
+
+    public void sniff(Consumer<TableDefinition> consumer) {
+        sourcedB = new SourceDatabase(this.source);
         targetdB = new TargetDatabase(this.target);
         targetdB.tables().stream().filter(t -> !excludedTableList().contains(t)).forEach(t -> {
             SortedSet<ColumnDefinition> columns = targetdB.columnDefs(t).stream().map(cd -> bf.apply(t, cd)).collect(Collectors.toCollection((() -> new TreeSet(ColumnDefinition.comparator))));
             TableDefinition td = new TableDefinition(t, columns);
             logger.info("compiled table definition "+td);
-            enqueue(td);
+            consumer.accept(td);
+        });
+    }
+
+    public void stream() {
+        stream(td -> {});
+    }
+
+    public void stream(Consumer<TableDefinition> consumer) {
+        sniff(td -> {
+            try {
+                enqueue(td);
+                consumer.accept(td);
+            } catch(RuntimeException e) {
+                logger.error(e.getMessage(), e);
+            }
         });
         if(!queue.isEmpty()) {
             logger.info("queue depth "+queue.size());
@@ -117,7 +134,6 @@ public class DbStreamer {
 
     private void processTableDefinition(TableDefinition tableDefinition) {
         try {
-            SourceDatabase sourcedB = new SourceDatabase(this.source);
             Publisher<TableRowUpdate> publisher = sourcedB.asPublisherFor(tableDefinition);
             Subscriber<TableRowUpdate> subscriber = targetdB.asSubscriberFor(tableDefinition, batchSize);
             Processor<TableRowUpdate, TableRowUpdate> processor = getProcessor(publisher, subscriber);
@@ -145,8 +161,9 @@ public class DbStreamer {
 
             @Override
             public void onNext(TableRowUpdate tru) {
-                List<ColumnUpdate> updates = tru.getColumnUpdates().stream().map(c -> ff.apply(tru.getTable()).apply(c)).collect(Collectors.toList());
-                this.subscriber.onNext(new TableRowUpdate(tru.getTable(), updates));
+                UnaryOperator<ColumnUpdate> f = ff.apply(tru.getTable());
+                List<ColumnUpdate> updates = tru.getColumnUpdates().stream().map(c -> f.apply(c)).collect(Collectors.toList());
+                this.subscriber.onNext(new TableRowUpdate(tru.getTableDefinition(), updates));
             }
 
             @Override
@@ -207,5 +224,13 @@ public class DbStreamer {
 
     public <T,U> Function<T, UnaryOperator<U>> curry(BiFunction<T,U,U> f) {
         return (T t) -> (U u) -> f.apply(t,u);
+    }
+
+    public TargetDatabase getTargetdB() {
+        return targetdB;
+    }
+
+    public SourceDatabase getSourcedB() {
+        return sourcedB;
     }
 }
