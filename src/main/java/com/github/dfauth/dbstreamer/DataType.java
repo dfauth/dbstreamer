@@ -75,7 +75,12 @@ public interface DataType<R> {
                     public Function<ResultSet, Integer> getReadFunction(int ord) {
                         return rs -> {
                             try {
-                                return rs.getInt(ord);
+                                int result = rs.getInt(ord);
+                                if(rs.wasNull()) {
+                                    return null;
+                                } else {
+                                    return result;
+                                }
                             } catch (SQLException e) {
                                 logger.error(e.getMessage(), e);
                                 throw new RuntimeException(e);
@@ -199,7 +204,12 @@ public interface DataType<R> {
                     public Function<ResultSet, Double> getReadFunction(int ord) {
                         return rs -> {
                             try {
-                                return rs.getDouble(ord);
+                                double result = rs.getDouble(ord);
+                                if(rs.wasNull()) {
+                                    return null;
+                                } else {
+                                    return result;
+                                }
                             } catch (SQLException e) {
                                 logger.error(e.getMessage(), e);
                                 throw new RuntimeException(e);
@@ -261,7 +271,12 @@ public interface DataType<R> {
                     public Function<ResultSet, Boolean> getReadFunction(int ord) {
                         return rs -> {
                             try {
-                                return rs.getBoolean(ord);
+                                boolean result = rs.getBoolean(ord);
+                                if(rs.wasNull()) {
+                                    return null;
+                                } else {
+                                    return result;
+                                }
                             } catch (SQLException e) {
                                 logger.error(e.getMessage(), e);
                                 throw new RuntimeException(e);
@@ -292,7 +307,12 @@ public interface DataType<R> {
                     public Function<ResultSet, Byte> getReadFunction(int ord) {
                         return rs -> {
                             try {
-                                return rs.getByte(ord);
+                                byte result = rs.getByte(ord);
+                                if(rs.wasNull()) {
+                                    return null;
+                                } else {
+                                    return result;
+                                }
                             } catch (SQLException e) {
                                 logger.error(e.getMessage(), e);
                                 throw new RuntimeException(e);
