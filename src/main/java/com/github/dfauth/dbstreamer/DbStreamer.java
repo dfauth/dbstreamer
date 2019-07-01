@@ -18,7 +18,8 @@ public class DbStreamer {
     private static final Logger logger = LoggerFactory.getLogger(DbStreamer.class);
     private final DataSource source;
     private final DataSource target;
-    private final List<String> excludedTables;
+    private Predicate<String> excludedTables = t -> false; //t -> !excludedTableList().contains(t);
+    private Predicate<String> includedTables = t -> true;
     private BlockingQueue<TableDefinition> queue = new LinkedBlockingQueue<>();
     private int nThreads = 10;
     private boolean shouldContinue = true;
@@ -30,13 +31,8 @@ public class DbStreamer {
     private SourceDatabase sourcedB;
 
     public DbStreamer(DataSource source, DataSource target) {
-        this(source, target, Collections.emptyList());
-    }
-
-    public DbStreamer(DataSource source, DataSource target, List<String> excludedTables) {
         this.source = source;
         this.target = target;
-        this.excludedTables = excludedTables;
     }
 
     public List<TableDefinition> sniff() {
@@ -48,7 +44,7 @@ public class DbStreamer {
     public void sniff(Consumer<TableDefinition> consumer) {
         sourcedB = new SourceDatabase(this.source);
         targetdB = new TargetDatabase(this.target);
-        targetdB.tables().stream().filter(t -> !excludedTableList().contains(t)).forEach(t -> {
+        targetdB.tables().stream().filter(excludedTables).filter(includedTables).forEach(t -> {
             SortedSet<ColumnDefinition> columns = targetdB.columnDefs(t).stream().map(cd -> bf.apply(t, cd)).collect(Collectors.toCollection((() -> new TreeSet(ColumnDefinition.comparator))));
             TableDefinition td = new TableDefinition(t, columns);
             logger.info("compiled table definition "+td);
@@ -185,8 +181,14 @@ public class DbStreamer {
         queue.offer(td);
     }
 
-    private List<String> excludedTableList() {
-        return excludedTables;
+    public DbStreamer excludeTables(List<String> excluded) {
+        this.excludedTables = t -> !excluded.contains(t);
+        return this;
+    }
+
+    public DbStreamer includeTables(List<String> included) {
+        this.includedTables = t -> included.contains(t);
+        return this;
     }
 
     public DbStreamer withColumnDefinition(BiFunction<String, ColumnDefinition, ColumnDefinition> f) {
