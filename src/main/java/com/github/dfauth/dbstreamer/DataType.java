@@ -272,6 +272,37 @@ public interface DataType<R> {
             }
         };
 
+        public static final Factory BIT_FACTORY = new Factory(Byte.class, "bit") {
+            @Override
+            public DataType<Byte> create() {
+                return new DataTypeImpl<Byte>(Types.BIT) {
+                    @Override
+                    public Consumer<Byte> getWriteConsumer(PreparedStatement pstmt, int i) {
+                        return v -> {
+                            try {
+                                pstmt.setByte(i, v);
+                            } catch (SQLException e) {
+                                logger.error(e.getMessage(), e);
+                                throw new RuntimeException(e);
+                            }
+                        };
+                    }
+
+                    @Override
+                    public Function<ResultSet, Byte> getReadFunction(int ord) {
+                        return rs -> {
+                            try {
+                                return rs.getByte(ord);
+                            } catch (SQLException e) {
+                                logger.error(e.getMessage(), e);
+                                throw new RuntimeException(e);
+                            }
+                        };
+                    }
+                };
+            }
+        };
+
         public static final Factory[] values = new Factory[]{VARCHAR_FACTORY,
                 INTEGER_FACTORY,
                 BIGDECIMAL_FACTORY,
@@ -279,7 +310,8 @@ public interface DataType<R> {
                 BLOB_FACTORY,
         DOUBLE_FACTORY,
         TIMESTAMP_FACTORY,
-        BOOLEAN_FACTORY};
+        BOOLEAN_FACTORY,
+        BIT_FACTORY};
 
         private final Set<String> aliases;
         private final Class<R> clazz;
