@@ -18,7 +18,7 @@ public class FluxQueueWrapper<R> implements Subscriber<R> {
     private static final Logger logger = LoggerFactory.getLogger(FluxQueueWrapper.class);
 
     private final Publisher<R> publisher;
-    BlockingQueue<Consumer<SynchronousSink<R>>> queue = new LinkedBlockingDeque<>(500000);
+    BlockingQueue<Consumer<SynchronousSink<R>>> queue = new LinkedBlockingDeque<>(5000000);
     private Subscription subscription;
 
     public FluxQueueWrapper(Publisher<R> publisher) {

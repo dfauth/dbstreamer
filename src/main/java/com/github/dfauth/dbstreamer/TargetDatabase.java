@@ -11,6 +11,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -88,11 +89,7 @@ public class TargetDatabase extends AbstractDatabase {
         }
     }
 
-    public Subscriber<TableRowUpdate> asSubscriberFor(TableDefinition tableDefinition) {
-        return asSubscriberFor(tableDefinition, 1000);
-    }
-
-    public Subscriber<TableRowUpdate> asSubscriberFor(TableDefinition tableDefinition, int batchSize) {
+    public Subscriber<TableRowUpdate> asSubscriberFor(TableDefinition tableDefinition, int batchSize, Consumer<Boolean> completionListener, Consumer<Throwable> exceptionListener) {
 
         return new Subscriber<TableRowUpdate>() {
             private PreparedStatement pstmt;
@@ -121,24 +118,28 @@ public class TargetDatabase extends AbstractDatabase {
                     }
                 } catch (SQLException e) {
                     logger.error(e.getMessage(), e);
-                    throw new RuntimeException(e);
+//                    throw new RuntimeException(e);
                 }
             }
 
             @Override
             public void onError(Throwable t) {
                 logger.error("onError("+t+")");
+                exceptionListener.accept(t);
                 close();
             }
 
             @Override
             public void onComplete() {
                 try {
+                    boolean b = false;
                     if(cnt%batchSize != 0) {
                         int[] result = pstmt.executeBatch();
-                        logger.info("onComplete:  cnt: "+cnt+" pstmt.executeBatch() result: "+ IntStream.of(result).mapToObj(i -> i == 1).reduce((b1, b2) -> b1 & b2).orElse(false));
+                        b = IntStream.of(result).mapToObj(i -> i == 1).reduce((b1, b2) -> b1 & b2).orElse(false);
+                        logger.info("onComplete:  cnt: "+cnt+" pstmt.executeBatch() result: "+b);
                     }
                     close();
+                    completionListener.accept(b);
                 } catch (SQLException e) {
                     logger.error(e.getMessage(), e);
                     throw new RuntimeException(e);

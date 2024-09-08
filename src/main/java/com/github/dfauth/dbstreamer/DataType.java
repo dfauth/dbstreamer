@@ -184,7 +184,7 @@ public interface DataType<R> {
             }
         };
 
-        public static final Factory DOUBLE_FACTORY = new Factory(Double.class, "double precision") {
+        public static final Factory DOUBLE_FACTORY = new Factory(Double.class, "double precision","decimal") {
             @Override
             public DataType<Double> create() {
                 return new DataTypeImpl<Double>(Types.DOUBLE) {
@@ -342,7 +342,10 @@ public interface DataType<R> {
         }
 
         public static Factory findBySqlType(String sqlDataType) {
-            return Stream.of(values).filter(v -> v.aliases.contains(sqlDataType.toUpperCase())).findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown or unsupported sql type: "+sqlDataType));
+            return Stream.of(values)
+                    .filter(v -> v.aliases.contains(sqlDataType.toUpperCase()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown or unsupported sql type: "+sqlDataType));
         }
 
         public abstract DataType<R> create();
